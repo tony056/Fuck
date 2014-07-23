@@ -11,6 +11,7 @@ import com.parse.ParsePush;
 import com.parse.ParseQuery;
 import com.parse.ParseRelation;
 import com.parse.ParseUser;
+import com.parse.PushService;
 import com.parse.SaveCallback;
 
 import android.app.Dialog;
@@ -52,7 +53,6 @@ public class FriendActivity extends ActionBarActivity{
 		arrayAdapter = new ArrayAdapter<String>(context, R.layout.mylistview, R.id.textItem, friendList);
 		
 		listView.setAdapter(arrayAdapter);
-		Toast.makeText(context, ParseUser.getCurrentUser().toString(), Toast.LENGTH_SHORT).show();
 		
 		listView.setOnItemClickListener(new OnItemClickListener() {
 
@@ -74,8 +74,7 @@ public class FriendActivity extends ActionBarActivity{
 	private void dialogBuilder(){
 		final Dialog dialog = new Dialog(context);
 		dialog.setContentView(R.layout.addfrienddialog);
-		
-		
+	
 		Button btnAddFriend = (Button) dialog.findViewById(R.id.buttonAdd);
 		Button btnCancel = (Button) dialog.findViewById(R.id.buttonCancel);
 		
@@ -88,7 +87,6 @@ public class FriendActivity extends ActionBarActivity{
 				dialog.dismiss();
 			}
 
-			
 		});
 		
 		btnCancel.setOnClickListener(new OnClickListener() {
@@ -103,7 +101,6 @@ public class FriendActivity extends ActionBarActivity{
 	}
 	
 	private void addFriend(final String targetUser) {
-		//ParseObject relation = new ParseObject("Relation");
 		Toast.makeText(this, "adding", Toast.LENGTH_SHORT).show();
 		ParseQuery<ParseUser> query = ParseUser.getQuery();
 		query.whereEqualTo("username", targetUser);
@@ -112,7 +109,6 @@ public class FriendActivity extends ActionBarActivity{
 			@Override
 			public void done(List<ParseUser> objects, ParseException e) {
 				if(e == null){
-					Toast.makeText(context, "return: "+ objects.size(), Toast.LENGTH_SHORT).show();
 					if(objects.size() == 1){
 						ParseUser friend = objects.get(0);
 						Log.e("DONE", "get user");
@@ -136,10 +132,10 @@ public class FriendActivity extends ActionBarActivity{
 	}
 	
 	private void sendPush(String target){
-		ParsePush parsePush = new ParsePush();
-		ParseQuery pQuery = ParseInstallation.getQuery(); 
-		pQuery.whereEqualTo("username", target); // <-- you'll probably want to target someone that's not the current user, so modify accordingly
-		parsePush.sendMessageInBackground("Fuck!", pQuery);
+		ParseObject message = new ParseObject("Message");
+		message.put("from", currentUser.getUsername());
+		message.put("to", target);
+		message.saveInBackground();
 		Toast.makeText(context, "Message sent!", Toast.LENGTH_SHORT).show();
 	}
 	
@@ -185,9 +181,7 @@ public class FriendActivity extends ActionBarActivity{
 	
 	@Override
 	public void onBackPressed(){
-		//moveTaskToBack(true);
-		super.onBackPressed();
-		FriendActivity.this.finish();
+		finish();
 	}
 	
 }
