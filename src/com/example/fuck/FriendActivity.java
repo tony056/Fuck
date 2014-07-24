@@ -3,6 +3,7 @@ package com.example.fuck;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.parse.CountCallback;
 import com.parse.FindCallback;
 import com.parse.ParseException;
 import com.parse.ParseInstallation;
@@ -15,7 +16,10 @@ import com.parse.PushService;
 import com.parse.SaveCallback;
 
 import android.app.Dialog;
+import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.ActionBarActivity;
 import android.util.Log;
@@ -38,36 +42,14 @@ public class FriendActivity extends ActionBarActivity{
 	ArrayAdapter<String> arrayAdapter;
 	Context context = this;
 	ParseUser currentUser;
+	ProgressDialog mProgressDialog;
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.friendview);
-		listView = (ListView) findViewById(R.id.listViewFriend);
 		currentUser = ParseUser.getCurrentUser();
-		
-		friendList = new ArrayList<String>();
-		
-		updateData();
-		
-		arrayAdapter = new ArrayAdapter<String>(context, R.layout.mylistview, R.id.textItem, friendList);
-		
-		listView.setAdapter(arrayAdapter);
-		
-		listView.setOnItemClickListener(new OnItemClickListener() {
-
-			@Override
-			public void onItemClick(AdapterView<?> arg0, View arg1, int arg2,
-					long arg3) {
-				String command = friendList.get(arg2);
-				if(command.equals("+")){
-					dialogBuilder();
-				}else{
-					sendPush(command);
-				}
-			}
-			
-		});
+		new RemoteDataTask().execute();
 		
 	}
 	
@@ -184,4 +166,81 @@ public class FriendActivity extends ActionBarActivity{
 		finish();
 	}
 	
+	@Override
+	public void onPause(){
+		super.onPause();
+		mProgressDialog.dismiss();
+	}
+	private class RemoteDataTask extends AsyncTask<Void, Void, Void> {
+		@Override
+		protected void onPreExecute() {
+			super.onPreExecute();
+			// Create a progressdialog
+			mProgressDialog = new ProgressDialog(FriendActivity.this);
+			// Set progressdialog title
+			mProgressDialog.setTitle("FUCK!");
+			// Set progressdialog message
+			mProgressDialog.setMessage("Loading...");
+			mProgressDialog.setIndeterminate(false);
+			// Show progressdialog
+			mProgressDialog.show();
+			
+		}
+
+		@Override
+		protected Void doInBackground(Void... params) {
+			
+			friendList = new ArrayList<String>();
+			if(ParseUser.getCurrentUser().getUsername() == null){
+				friendList.add("+");
+				
+			}else {
+				
+				friendList.add("+");
+				ParseRelation relation = ParseUser.getCurrentUser().getRelation("Friend");
+				ParseQuery<ParseUser> query = relation.getQuery();
+				query.findInBackground(new FindCallback<ParseUser>() {
+					@Override
+					public void done(List<ParseUser> objects, ParseException e) {
+						if(objects.size() > 0){
+							for(ParseUser obj : objects){
+								friendList.add(obj.getUsername());
+							}
+							
+						}
+						arrayAdapter.notifyDataSetChanged();
+					}
+				});
+			
+				
+			}
+			
+			return null;
+		}
+
+		@Override
+		protected void onPostExecute(Void result) {
+			listView = (ListView) findViewById(R.id.listViewFriend);
+			arrayAdapter = new ArrayAdapter<String>(getBaseContext(),
+					R.layout.mylistview, R.id.textItem, friendList);
+			listView.setAdapter(arrayAdapter);
+			mProgressDialog.dismiss();
+			listView.setOnItemClickListener(new OnItemClickListener() {
+
+				@Override
+				public void onItemClick(AdapterView<?> arg0, View arg1, int arg2,
+						long arg3) {
+					String command = friendList.get(arg2);
+					if(command.equals("+")){
+						dialogBuilder();
+					}else{
+						sendPush(command);
+					}
+				}
+				
+			});
+			// Close the progressdialog
+			
+		}
+	}
 }
